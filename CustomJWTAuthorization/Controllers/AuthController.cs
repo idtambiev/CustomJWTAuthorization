@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CustomJWTAuthorization.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 
 namespace CustomJWTAuthorization.Controllers
 {
@@ -10,7 +12,7 @@ namespace CustomJWTAuthorization.Controllers
 
         public AuthController()
         {
-            return Ok();
+            
         }
 
         [HttpPost("registration")]
@@ -41,6 +43,31 @@ namespace CustomJWTAuthorization.Controllers
         public async Task<IActionResult> ForgotPassword()
         {
             return Ok();
+        }
+
+        private PasswordModel GeneratePasswordHash(string password)
+        {
+            using(var hmac = new HMACSHA512())
+            {
+                var passwordSalt = hmac.Key;
+                var passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+
+                return new PasswordModel 
+                { 
+                    PasswordHash = passwordHash, 
+                    PasswordSalt = passwordSalt 
+                };
+
+            }
+        }
+
+        private bool VerifyPasswordHash(string password, PasswordModel model)
+        {
+            using(var hmac = new HMACSHA512(model.PasswordSalt))
+            {
+                var computeHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                return computeHash.SequenceEqual(model.PasswordHash);
+            }
         }
     }
 }
